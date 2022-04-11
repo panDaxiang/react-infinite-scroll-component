@@ -22,7 +22,7 @@ export interface Props {
   pullDownToRefreshThreshold?: number;
   refreshFunction?: Fn;
   onScroll?: (e: MouseEvent) => any;
-  dataLength: number;
+  dataLength: number; // 列表长度
   initialScrollY?: number;
   className?: string;
 }
@@ -124,6 +124,7 @@ export default class InfiniteScroll extends Component<Props, State> {
   }
 
   componentWillUnmount() {
+    // 卸载事件绑定
     if (this.el) {
       this.el.removeEventListener('scroll', this
         .throttledOnScrollListener as EventListenerOrEventListenerObject);
@@ -141,7 +142,7 @@ export default class InfiniteScroll extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    // do nothing when dataLength is unchanged
+    // 列表长度不变不做处理
     if (this.props.dataLength === prevProps.dataLength) return;
 
     this.actionTriggered = false;
@@ -335,6 +336,7 @@ export default class InfiniteScroll extends Component<Props, State> {
       WebkitOverflowScrolling: 'touch',
       ...this.props.style,
     } as CSSProperties;
+
     const hasChildren =
       this.props.hasChildren ||
       !!(
@@ -349,6 +351,7 @@ export default class InfiniteScroll extends Component<Props, State> {
       this.props.pullDownToRefresh && this.props.height
         ? { overflow: 'auto' }
         : {};
+
     return (
       <div
         style={outerDivStyle}
@@ -359,6 +362,7 @@ export default class InfiniteScroll extends Component<Props, State> {
           ref={(infScroll: HTMLDivElement) => (this._infScroll = infScroll)}
           style={style}
         >
+          {/* 下拉刷新 */}
           {this.props.pullDownToRefresh && (
             <div
               style={{ position: 'relative' }}
@@ -378,12 +382,17 @@ export default class InfiniteScroll extends Component<Props, State> {
               </div>
             </div>
           )}
+
+          {/* children */}
           {this.props.children}
+
           {!this.state.showLoader &&
             !hasChildren &&
             this.props.hasMore &&
             this.props.loader}
+
           {this.state.showLoader && this.props.hasMore && this.props.loader}
+
           {!this.props.hasMore && this.props.endMessage}
         </div>
       </div>
