@@ -88,6 +88,7 @@ export default class InfiniteScroll extends Component<Props, State> {
       : this._scrollableNode || window;
 
     if (this.el) {
+      // 绑定滚动事件
       this.el.addEventListener('scroll', this
         .throttledOnScrollListener as EventListenerOrEventListenerObject);
     }
