@@ -10,7 +10,7 @@ export interface Props {
   children: ReactNode;
   loader: ReactNode;
   scrollThreshold?: number | string;
-  endMessage?: ReactNode;
+  endMessage?: ReactNode; // 滚动到底部显示的元素
   style?: CSSProperties;
   height?: number | string;
   scrollableTarget?: ReactNode;
@@ -54,6 +54,7 @@ export default class InfiniteScroll extends Component<Props, State> {
   private throttledOnScrollListener: (e: MouseEvent) => void;
   private _scrollableNode: HTMLElement | undefined | null;
   private el: HTMLElement | undefined | Window & typeof globalThis;
+  // 滚动元素
   private _infScroll: HTMLDivElement | undefined;
   private lastScrollTop = 0;
   private actionTriggered = false;
@@ -69,6 +70,7 @@ export default class InfiniteScroll extends Component<Props, State> {
   private maxPullDownDistance = 0;
 
   componentDidMount() {
+    // 判断数据格式是否符合要求
     if (typeof this.props.dataLength === 'undefined') {
       throw new Error(
         `mandatory prop "dataLength" is missing. The prop is needed` +
@@ -76,7 +78,10 @@ export default class InfiniteScroll extends Component<Props, State> {
       );
     }
 
+    // 获取滚动容器
     this._scrollableNode = this.getScrollableTarget();
+
+    // 根据是否设定高度判断获取元素
     this.el = this.props.height
       ? this._infScroll
       : this._scrollableNode || window;
@@ -156,7 +161,7 @@ export default class InfiniteScroll extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Props, prevState: State) {
     const dataLengthChanged = nextProps.dataLength !== prevState.prevDataLength;
 
-    // reset when data changes
+    // 处理数据长度变化，更新state中数据值
     if (dataLengthChanged) {
       return {
         ...prevState,
@@ -166,6 +171,7 @@ export default class InfiniteScroll extends Component<Props, State> {
     return null;
   }
 
+  // 获取滚动容器
   getScrollableTarget = () => {
     if (this.props.scrollableTarget instanceof HTMLElement)
       return this.props.scrollableTarget;
@@ -393,6 +399,7 @@ export default class InfiniteScroll extends Component<Props, State> {
 
           {this.state.showLoader && this.props.hasMore && this.props.loader}
 
+          {/* 滚动到底部显示的元素 */}
           {!this.props.hasMore && this.props.endMessage}
         </div>
       </div>
