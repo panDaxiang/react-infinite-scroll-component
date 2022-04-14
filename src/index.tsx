@@ -82,6 +82,7 @@ export default class InfiniteScroll extends Component<Props, State> {
     this._scrollableNode = this.getScrollableTarget();
 
     // 根据是否设定高度判断获取元素
+    // 这块为什么这样做，待确定
     this.el = this.props.height
       ? this._infScroll
       : this._scrollableNode || window;
