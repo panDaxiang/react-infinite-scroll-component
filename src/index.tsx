@@ -5,26 +5,29 @@ import { ThresholdUnits, parseThreshold } from './utils/threshold';
 
 type Fn = () => any;
 export interface Props {
-  next: Fn;
-  hasMore: boolean;
-  children: ReactNode;
-  loader: ReactNode;
-  scrollThreshold?: number | string;
-  endMessage?: ReactNode; // 滚动到底部显示的元素
-  style?: CSSProperties;
-  height?: number | string;
-  scrollableTarget?: ReactNode; // 滚动的元素
-  hasChildren?: boolean;
-  inverse?: boolean;
-  pullDownToRefresh?: boolean;
-  pullDownToRefreshContent?: ReactNode;
-  releaseToRefreshContent?: ReactNode;
-  pullDownToRefreshThreshold?: number;
-  refreshFunction?: Fn;
-  onScroll?: (e: MouseEvent) => any;
+  next: Fn; // 到达底部触发的方法
+  hasMore: boolean; // 列表是否有更多元素
   dataLength: number; // 列表长度
+  children: ReactNode; // 子元素
+  loader: ReactNode; // 滚动加载中显示的节点
+  scrollThreshold?: number | string; // 上拉时触发next,相当于底部的距离
+  endMessage?: ReactNode; // 滚动到底部显示的元素
+
+  height?: number | string; // 设置滚动区域的高度
+  scrollableTarget?: ReactNode; // 滚动的元素
+  hasChildren?: boolean; // 是否有子元素
+  inverse?: boolean;
+
+  pullDownToRefresh?: boolean; // 开启下拉刷新
+  pullDownToRefreshContent?: ReactNode; // 未达到下拉阈值显示的内容
+  releaseToRefreshContent?: ReactNode; // 达到下拉阈值显示的内容
+  pullDownToRefreshThreshold?: number; // 阈值
+  refreshFunction?: Fn; // 触发下拉刷新时调用的函数
+
+  onScroll?: (e: MouseEvent) => any;
   initialScrollY?: number; // 初始化滚动位置
   className?: string;
+  style?: CSSProperties;
 }
 
 interface State {
@@ -193,6 +196,7 @@ export default class InfiniteScroll extends Component<Props, State> {
   onStart: EventListener = (evt: Event) => {
     if (this.lastScrollTop) return;
 
+    // 拖拽状态
     this.dragging = true;
 
     if (evt instanceof MouseEvent) {
@@ -200,8 +204,10 @@ export default class InfiniteScroll extends Component<Props, State> {
     } else if (evt instanceof TouchEvent) {
       this.startY = evt.touches[0].pageY;
     }
+
     this.currentY = this.startY;
 
+    // 开启willchange优化
     if (this._infScroll) {
       this._infScroll.style.willChange = 'transform';
       this._infScroll.style.transition = `transform 0.2s cubic-bezier(0,0,0.31,1)`;
@@ -217,7 +223,7 @@ export default class InfiniteScroll extends Component<Props, State> {
       this.currentY = evt.touches[0].pageY;
     }
 
-    // user is scrolling down to up
+    // 用户向上滚动，不需要处理
     if (this.currentY < this.startY) return;
 
     if (
@@ -287,13 +293,16 @@ export default class InfiniteScroll extends Component<Props, State> {
     target: HTMLElement,
     scrollThreshold: string | number = 0.8
   ) {
+    // 滚动元素的可视高度
     const clientHeight =
       target === document.body || target === document.documentElement
         ? window.screen.availHeight
         : target.clientHeight;
 
+    // 处理阈值的单位和数值，返回为对象
     const threshold = parseThreshold(scrollThreshold);
 
+    // 滚动到阈值位置的时候，出发到达底部判断
     if (threshold.unit === ThresholdUnits.Pixel) {
       return (
         target.scrollTop + clientHeight >= target.scrollHeight - threshold.value
@@ -306,6 +315,7 @@ export default class InfiniteScroll extends Component<Props, State> {
     );
   }
 
+  // 滚动事件
   onScrollListener = (event: MouseEvent) => {
     if (typeof this.props.onScroll === 'function') {
       // Execute this callback in next tick so that it does not affect the
@@ -313,6 +323,7 @@ export default class InfiniteScroll extends Component<Props, State> {
       setTimeout(() => this.props.onScroll && this.props.onScroll(event), 0);
     }
 
+    // 滚动的元素
     const target =
       this.props.height || this._scrollableNode
         ? (event.target as HTMLElement)
@@ -342,7 +353,8 @@ export default class InfiniteScroll extends Component<Props, State> {
     const style = {
       height: this.props.height || 'auto',
       overflow: 'auto',
-      WebkitOverflowScrolling: 'touch',
+      WebkitOverflowScrolling:
+        'touch' /* 当手指从触摸屏上移开，会保持一段时间的滚动 */,
       ...this.props.style,
     } as CSSProperties;
 
