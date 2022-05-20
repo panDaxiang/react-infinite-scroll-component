@@ -1,4 +1,5 @@
 // @ts-nocheck
+/* eslint-disable */
 import React, { Component, ReactNode, CSSProperties } from 'react';
 import { throttle } from 'throttle-debounce';
 import { ThresholdUnits, parseThreshold } from './utils/threshold';
