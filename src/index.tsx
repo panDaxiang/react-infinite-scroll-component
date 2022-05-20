@@ -13,7 +13,7 @@ export interface Props {
   endMessage?: ReactNode; // 滚动到底部显示的元素
   style?: CSSProperties;
   height?: number | string;
-  scrollableTarget?: ReactNode;
+  scrollableTarget?: ReactNode; // 滚动的元素
   hasChildren?: boolean;
   inverse?: boolean;
   pullDownToRefresh?: boolean;
@@ -23,7 +23,7 @@ export interface Props {
   refreshFunction?: Fn;
   onScroll?: (e: MouseEvent) => any;
   dataLength: number; // 列表长度
-  initialScrollY?: number;
+  initialScrollY?: number; // 初始化滚动位置
   className?: string;
 }
 
@@ -69,6 +69,19 @@ export default class InfiniteScroll extends Component<Props, State> {
   // based on the height of the pull down element
   private maxPullDownDistance = 0;
 
+  static getDerivedStateFromProps(nextProps: Props, prevState: State) {
+    const dataLengthChanged = nextProps.dataLength !== prevState.prevDataLength;
+
+    // 处理数据长度变化，更新state中数据值
+    if (dataLengthChanged) {
+      return {
+        ...prevState,
+        prevDataLength: nextProps.dataLength,
+      };
+    }
+    return null;
+  }
+
   componentDidMount() {
     // 判断数据格式是否符合要求
     if (typeof this.props.dataLength === 'undefined') {
@@ -81,8 +94,7 @@ export default class InfiniteScroll extends Component<Props, State> {
     // 获取滚动容器
     this._scrollableNode = this.getScrollableTarget();
 
-    // 根据是否设定高度判断获取元素
-    // 这块为什么这样做，待确定
+    // 如果设置高度则以组件内元素作为滚动区域，否则根据传入进来的dom元素作为滚动元素
     this.el = this.props.height
       ? this._infScroll
       : this._scrollableNode || window;
@@ -93,10 +105,12 @@ export default class InfiniteScroll extends Component<Props, State> {
         .throttledOnScrollListener as EventListenerOrEventListenerObject);
     }
 
+    // 初始化Y轴方向滚动位置
     if (
       typeof this.props.initialScrollY === 'number' &&
       this.el &&
       this.el instanceof HTMLElement &&
+      // 这个逻辑判断好像是有问题的
       this.el.scrollHeight > this.props.initialScrollY
     ) {
       this.el.scrollTo(0, this.props.initialScrollY);
@@ -130,6 +144,18 @@ export default class InfiniteScroll extends Component<Props, State> {
     }
   }
 
+  componentDidUpdate(prevProps: Props) {
+    // 列表长度不变不做处理
+    if (this.props.dataLength === prevProps.dataLength) return;
+
+    this.actionTriggered = false;
+
+    // update state when new data was sent in
+    this.setState({
+      showLoader: false,
+    });
+  }
+
   componentWillUnmount() {
     // 卸载事件绑定
     if (this.el) {
@@ -146,31 +172,6 @@ export default class InfiniteScroll extends Component<Props, State> {
         this.el.removeEventListener('mouseup', this.onEnd);
       }
     }
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    // 列表长度不变不做处理
-    if (this.props.dataLength === prevProps.dataLength) return;
-
-    this.actionTriggered = false;
-
-    // update state when new data was sent in
-    this.setState({
-      showLoader: false,
-    });
-  }
-
-  static getDerivedStateFromProps(nextProps: Props, prevState: State) {
-    const dataLengthChanged = nextProps.dataLength !== prevState.prevDataLength;
-
-    // 处理数据长度变化，更新state中数据值
-    if (dataLengthChanged) {
-      return {
-        ...prevState,
-        prevDataLength: nextProps.dataLength,
-      };
-    }
-    return null;
   }
 
   // 获取滚动容器
