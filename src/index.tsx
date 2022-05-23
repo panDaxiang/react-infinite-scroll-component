@@ -11,21 +11,21 @@ export interface Props {
   dataLength: number; // 列表长度
   children: ReactNode; // 子元素
   loader: ReactNode; // 滚动加载中显示的节点
-  scrollThreshold?: number | string; // 上拉时触发next,相当于底部的距离
+  scrollThreshold?: number | string; // 滚动加载的阈值
   endMessage?: ReactNode; // 滚动到底部显示的元素
 
   height?: number | string; // 设置滚动区域的高度
   scrollableTarget?: ReactNode; // 滚动的元素
   hasChildren?: boolean; // 是否有子元素
-  inverse?: boolean;
+  inverse?: boolean; // 设置加载更多的触发机制， true为向上滚动加载更多， false为下拉滚动加载更多
 
   pullDownToRefresh?: boolean; // 开启下拉刷新
   pullDownToRefreshContent?: ReactNode; // 未达到下拉阈值显示的内容
   releaseToRefreshContent?: ReactNode; // 达到下拉阈值显示的内容
-  pullDownToRefreshThreshold?: number; // 阈值
+  pullDownToRefreshThreshold?: number; // 下拉阈值
   refreshFunction?: Fn; // 触发下拉刷新时调用的函数
 
-  onScroll?: (e: MouseEvent) => any;
+  onScroll?: (e: MouseEvent) => any; // 滚动时触发
   initialScrollY?: number; // 初始化滚动位置
   className?: string;
   style?: CSSProperties;
@@ -42,9 +42,9 @@ export default class InfiniteScroll extends Component<Props, State> {
     super(props);
 
     this.state = {
-      showLoader: false,
-      pullToRefreshThresholdBreached: false,
-      prevDataLength: props.dataLength,
+      showLoader: false, // 加载loader
+      pullToRefreshThresholdBreached: false, // 显示下拉内容状态
+      prevDataLength: props.dataLength, // 上次列表数据长度
     };
 
     this.throttledOnScrollListener = throttle(150, this.onScrollListener).bind(
@@ -62,7 +62,7 @@ export default class InfiniteScroll extends Component<Props, State> {
   private _infScroll: HTMLDivElement | undefined;
   private lastScrollTop = 0;
   private actionTriggered = false;
-  private _pullDown: HTMLDivElement | undefined;
+  private _pullDown: HTMLDivElement | undefined; // 下拉的元素
 
   // variables to keep track of pull down behaviour
   private startY = 0;
@@ -114,12 +114,12 @@ export default class InfiniteScroll extends Component<Props, State> {
       typeof this.props.initialScrollY === 'number' &&
       this.el &&
       this.el instanceof HTMLElement &&
-      // 这个逻辑判断好像是有问题的
       this.el.scrollHeight > this.props.initialScrollY
     ) {
       this.el.scrollTo(0, this.props.initialScrollY);
     }
 
+    // 是否开启下拉加载
     if (this.props.pullDownToRefresh && this.el) {
       this.el.addEventListener('touchstart', this.onStart);
       this.el.addEventListener('touchmove', this.onMove);
@@ -197,9 +197,10 @@ export default class InfiniteScroll extends Component<Props, State> {
   onStart: EventListener = (evt: Event) => {
     if (this.lastScrollTop) return;
 
-    // 拖拽状态
+    // 标识拖拽状态
     this.dragging = true;
 
+    // 记录下拉拖拽的操作位置
     if (evt instanceof MouseEvent) {
       this.startY = evt.pageY;
     } else if (evt instanceof TouchEvent) {
@@ -247,20 +248,23 @@ export default class InfiniteScroll extends Component<Props, State> {
   };
 
   onEnd: EventListener = () => {
+    // 重置状态
     this.startY = 0;
     this.currentY = 0;
 
     this.dragging = false;
 
+    // 如果下拉触发阈值，则执行refresh函数
     if (this.state.pullToRefreshThresholdBreached) {
       this.props.refreshFunction && this.props.refreshFunction();
+      // 重置状态
       this.setState({
         pullToRefreshThresholdBreached: false,
       });
     }
 
+    // 下一帧开始初始化样式
     requestAnimationFrame(() => {
-      // this._infScroll
       if (this._infScroll) {
         this._infScroll.style.overflow = 'auto';
         this._infScroll.style.transform = 'none';
@@ -269,6 +273,7 @@ export default class InfiniteScroll extends Component<Props, State> {
     });
   };
 
+  // 判断是否滚动到顶部
   isElementAtTop(target: HTMLElement, scrollThreshold: string | number = 0.8) {
     const clientHeight =
       target === document.body || target === document.documentElement
@@ -290,6 +295,7 @@ export default class InfiniteScroll extends Component<Props, State> {
     );
   }
 
+  // 判断是否滚动到底部
   isElementAtBottom(
     target: HTMLElement,
     scrollThreshold: string | number = 0.8
@@ -310,6 +316,7 @@ export default class InfiniteScroll extends Component<Props, State> {
       );
     }
 
+    // 对于百分比处理，要是滚动到达比例，则触发到达底部判断
     return (
       target.scrollTop + clientHeight >=
       (threshold.value / 100) * target.scrollHeight
@@ -332,21 +339,21 @@ export default class InfiniteScroll extends Component<Props, State> {
         ? document.documentElement
         : document.body;
 
-    // return immediately if the action has already been triggered,
-    // prevents multiple triggers.
+    // 阻止多次触发next
     if (this.actionTriggered) return;
 
     const atBottom = this.props.inverse
       ? this.isElementAtTop(target, this.props.scrollThreshold)
       : this.isElementAtBottom(target, this.props.scrollThreshold);
 
-    // call the `next` function in the props to trigger the next data fetch
+    // 根据是否到底底部和是否有更多，判断是否要触发next
     if (atBottom && this.props.hasMore) {
       this.actionTriggered = true;
       this.setState({ showLoader: true });
       this.props.next && this.props.next();
     }
 
+    // 记录滚动的高度
     this.lastScrollTop = target.scrollTop;
   };
 
